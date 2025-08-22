@@ -63,6 +63,12 @@ export default function OutageFilter({ organizations, onFilterChange }: OutageFi
                                 className="w-full p-3 bg-white/80 backdrop-blur-sm rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all duration-200 appearance-none cursor-pointer text-sm"
                                 required
                             >
+                                <option value="ALL">-- Tất cả khu vực --</option>
+                                {organizations.map((org) => (
+                                    <option key={org.id} value={org.code}>
+                                        {org.organizationName}
+                                    </option>
+                                ))}
                                 <option value="">-- Chọn khu vực --</option>
                                 {organizations.map((org) => (
                                     <option key={org.id} value={org.code}>

@@ -22,24 +22,24 @@ function EmbedContent() {
 
     const { data: outageData, isLoading } = useOutages(filters || {});
 
+    // Auto-load ALL data when component mounts
     useEffect(() => {
-        if (defaultRegion && defaultRegion !== 'all' && organizations) {
-            const org = organizations.find(o => o.code === defaultRegion);
-            if (org) {
-                const today = new Date();
-                const nextWeek = new Date();
-                nextWeek.setDate(today.getDate() + 7);
+        if (organizations) {
+            const today = new Date();
+            const nextWeek = new Date();
+            nextWeek.setDate(today.getDate() + 7);
 
-                setFilters({
-                    subOrgCode: defaultRegion,
-                    fromDate: today.toISOString().split('T')[0] + ' 00:00:00',
-                    toDate: nextWeek.toISOString().split('T')[0] + ' 23:59:59',
-                    page: 1,
-                    limit: 10
-                });
-            }
+            // If no specific region, load data from first organization
+            // But we'll modify API to return ALL data when subOrgCode = 'ALL'
+            setFilters({
+                subOrgCode: defaultRegion && defaultRegion !== 'all' ? defaultRegion : 'ALL',
+                fromDate: today.toISOString().split('T')[0] + ' 00:00:00',
+                toDate: nextWeek.toISOString().split('T')[0] + ' 23:59:59',
+                page: 1,
+                limit: 10
+            });
         }
-    }, [defaultRegion, organizations]);
+    }, [organizations, defaultRegion]);
 
     const handleFilterChange = (newFilters: {
         subOrgCode: string;
@@ -68,7 +68,7 @@ function EmbedContent() {
 
     return (
         <div className={`min-h-screen ${themeClasses} p-4`}>
-            <div className="max-w-4xl mx-auto">
+            <div className="max-w-6xl mx-auto">
                 <h1 className="text-2xl font-bold mb-6 text-center">
                     Thông tin cúp điện
                 </h1>
@@ -89,14 +89,6 @@ function EmbedContent() {
                         onPageChange={handlePageChange}
                         isLoading={isLoading}
                     />
-                )}
-
-                {!filters && (
-                    <div className="glass-card rounded-xl p-8 text-center shadow-lg">
-                        <div className="text-gray-500">
-                            Vui lòng chọn khu vực và thời gian để xem thông tin cúp điện
-                        </div>
-                    </div>
                 )}
             </div>
         </div>

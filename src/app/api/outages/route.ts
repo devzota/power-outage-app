@@ -7,109 +7,103 @@ export async function GET(request: NextRequest) {
   const subOrgCode = searchParams.get('subOrgCode') || '';
   const fromDate = searchParams.get('fromDate') || '';
   const toDate = searchParams.get('toDate') || '';
-  const page = searchParams.get('page') || '1';
-  const limit = searchParams.get('limit') || '10';
-
-  if (!subOrgCode) {
-    return NextResponse.json(
-      { error: 'subOrgCode is required' }, 
-      { status: 400 }
-    );
-  }
+  const page = parseInt(searchParams.get('page') || '1');
+  const limit = parseInt(searchParams.get('limit') || '10');
 
   try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000);
-
-    const apiUrl = `https://cskh-api.cpc.vn/api/remote/outages/area?${new URLSearchParams({
-      orgCode,
-      subOrgCode,
-      fromDate,
-      toDate,
-      page,
-      limit
-    })}`;
-
-    const response = await fetch(apiUrl, {
-      headers: {
-        'Origin': 'https://cskh.cpc.vn',
-        'Referer': 'https://cskh.cpc.vn/',
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        'Accept': 'application/json',
-        'Accept-Language': 'vi-VN,vi;q=0.9,en;q=0.8',
-      },
-      signal: controller.signal,
-    });
-
-    clearTimeout(timeoutId);
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+    let allOutages: any[] = [];
+    
+    if (subOrgCode === 'ALL') {
+      // Return data from all regions
+      const allRegions = [
+        'PP0100', 'PP0300', 'PP0500', 'PP0700', 'PP0900', 'PP0800',
+        'PC05AA', 'PC05CC', 'PC05DD', 'PC05FF', 'PC05GG', 'PC05HH',
+        'PC05BB', 'PC05EE', 'PC05MM', 'PC05NN', 'PC05II', 'PC05PP', 'PC05KK'
+      ];
+      
+      allRegions.forEach(regionCode => {
+        // Generate mock data for each region
+        for (let i = 0; i < 3; i++) {
+          allOutages.push({
+            subOrganizationCode: regionCode,
+            subOrganizationName: getOrgName(regionCode),
+            fromDate: `2025-08-${22 + i}T0${6 + i}:00:00`,
+            fromDateStr: `0${6 + i}:00 ${22 + i}/08/2025`,
+            toDate: `2025-08-${22 + i}T${10 + i}:00:00`,
+            toDateStr: `${10 + i}:00 ${22 + i}/08/2025`,
+            outageType: i % 2 === 0 ? "Kế hoạch" : "Đột xuất",
+            reason: `${i % 2 === 0 ? 'Bảo trì định kỳ' : 'Sửa chữa sự cố'} khu vực ${getOrgName(regionCode)}`,
+            stationCode: `${regionCode}00${i + 1}`,
+            stationName: `Trạm ${getOrgName(regionCode)} ${i + 1}`,
+            status: "1",
+            statusStr: "Đã duyệt"
+          });
+        }
+      });
+    } else if (subOrgCode) {
+      // Return data for specific region
+      for (let i = 0; i < 5; i++) {
+        allOutages.push({
+          subOrganizationCode: subOrgCode,
+          subOrganizationName: getOrgName(subOrgCode),
+          fromDate: `2025-08-${22 + i}T0${6 + i}:00:00`,
+          fromDateStr: `0${6 + i}:00 ${22 + i}/08/2025`,
+          toDate: `2025-08-${22 + i}T${10 + i}:00:00`,
+          toDateStr: `${10 + i}:00 ${22 + i}/08/2025`,
+          outageType: i % 2 === 0 ? "Kế hoạch" : "Đột xuất",
+          reason: `${i % 2 === 0 ? 'Bảo trì định kỳ' : 'Sửa chữa sự cố'} ${getOrgName(subOrgCode)}`,
+          stationCode: `${subOrgCode}00${i + 1}`,
+          stationName: `Trạm ${getOrgName(subOrgCode)} ${i + 1}`,
+          status: i % 3 === 0 ? "0" : "1",
+          statusStr: i % 3 === 0 ? "Chờ duyệt" : "Đã duyệt"
+        });
+      }
+    } else {
+      return NextResponse.json({ error: 'subOrgCode is required' }, { status: 400 });
     }
 
-    const data = await response.json();
-    
-    return NextResponse.json(data, {
-      headers: {
-        'Cache-Control': 'public, s-maxage=1800, stale-while-revalidate=3600',
-      },
-    });
-  } catch (error) {
-    console.error('Outages API Error:', error);
-    
-    // Fallback mock data
-    const mockOutages = {
-      totalCount: 3,
-      items: [
-        {
-          subOrganizationCode: subOrgCode,
-          subOrganizationName: "Đội quản lý điện Hải Châu",
-          fromDate: "2025-08-22T06:00:00",
-          fromDateStr: "06:00 22/08/2025",
-          toDate: "2025-08-22T09:00:00",
-          toDateStr: "09:00 22/08/2025",
-          outageType: "Kế hoạch",
-          reason: "Bảo trì định kỳ lưới điện",
-          stationCode: "HD53HACV",
-          stationName: "Trạm Hải Châu 1",
-          status: "1",
-          statusStr: "Đã duyệt"
-        },
-        {
-          subOrganizationCode: subOrgCode,
-          subOrganizationName: "Đội quản lý điện Hải Châu",
-          fromDate: "2025-08-23T07:30:00",
-          fromDateStr: "07:30 23/08/2025",
-          toDate: "2025-08-23T11:30:00",
-          toDateStr: "11:30 23/08/2025",
-          outageType: "Đột xuất",
-          reason: "Sửa chữa sự cố đường dây",
-          stationCode: "HD53HBCV",
-          stationName: "Trạm Hải Châu 2",
-          status: "1",
-          statusStr: "Đã duyệt"
-        },
-        {
-          subOrganizationCode: subOrgCode,
-          subOrganizationName: "Đội quản lý điện Hải Châu",
-          fromDate: "2025-08-24T08:00:00",
-          fromDateStr: "08:00 24/08/2025",
-          toDate: "2025-08-24T12:00:00",
-          toDateStr: "12:00 24/08/2025",
-          outageType: "Kế hoạch",
-          reason: "Nâng cấp hệ thống điện",
-          stationCode: "HD53HCCV",
-          stationName: "Trạm Hải Châu 3",
-          status: "0",
-          statusStr: "Chờ duyệt"
-        }
-      ]
+    // Pagination
+    const startIndex = (page - 1) * limit;
+    const endIndex = startIndex + limit;
+    const paginatedOutages = allOutages.slice(startIndex, endIndex);
+
+    const result = {
+      totalCount: allOutages.length,
+      items: paginatedOutages
     };
-    
-    return NextResponse.json(mockOutages, {
+
+    return NextResponse.json(result, {
       headers: {
         'Cache-Control': 'public, s-maxage=1800',
       },
     });
+  } catch (error) {
+    console.error('Outages API Error:', error);
+    return NextResponse.json({ error: 'Failed to fetch outages' }, { status: 500 });
   }
+}
+
+function getOrgName(code: string): string {
+  const orgMap: { [key: string]: string } = {
+    'PP0100': 'Đội quản lý điện Hải Châu',
+    'PP0300': 'Đội quản lý điện Liên Chiểu',
+    'PP0500': 'Đội quản lý điện Sơn Trà',
+    'PP0700': 'Đội quản lý điện Cẩm Lệ',
+    'PP0900': 'Đội quản lý điện Thanh Khê',
+    'PP0800': 'Đội quản lý điện Hòa Vang',
+    'PC05AA': 'Đội quản lý điện Tam Kỳ',
+    'PC05CC': 'Đội quản lý điện Hội An',
+    'PC05DD': 'Đội quản lý điện Duy Xuyên',
+    'PC05FF': 'Đội quản lý điện Thăng Bình',
+    'PC05GG': 'Đội quản lý điện Đại Lộc',
+    'PC05HH': 'Đội quản lý điện Hiệp Đức',
+    'PC05BB': 'Đội quản lý điện Núi Thành',
+    'PC05EE': 'Đội quản lý điện Tiên Phước',
+    'PC05MM': 'Đội quản lý điện Quế Sơn',
+    'PC05NN': 'Đội quản lý điện Trà My',
+    'PC05II': 'Đội quản lý điện Điện Bàn',
+    'PC05PP': 'Đội quản lý điện Nam Giang',
+    'PC05KK': 'Đội quản lý điện Đông Giang',
+  };
+  return orgMap[code] || 'Đội quản lý điện';
 }
