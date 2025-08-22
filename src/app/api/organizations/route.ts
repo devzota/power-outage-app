@@ -2,7 +2,10 @@ import { NextResponse } from 'next/server';
 
 export async function GET() {
   try {
-    // Sử dụng proxy hoặc fallback data
+    // Sử dụng AbortController để handle timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
+
     const response = await fetch('https://cskh-api.cpc.vn/api/remote/organizations?maDonViCapTren=PP', {
       headers: {
         'Origin': 'https://cskh.cpc.vn',
@@ -12,8 +15,10 @@ export async function GET() {
         'Accept-Language': 'vi-VN,vi;q=0.9,en;q=0.8',
         'Cache-Control': 'no-cache',
       },
-      timeout: 15000, // Tăng timeout
+      signal: controller.signal,
     });
+
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
