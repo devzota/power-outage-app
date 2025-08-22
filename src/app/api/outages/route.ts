@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { Outage } from '@/types/power-outage';
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
@@ -11,7 +12,7 @@ export async function GET(request: NextRequest) {
   const limit = parseInt(searchParams.get('limit') || '10');
 
   try {
-    let allOutages: any[] = [];
+    const allOutages: Outage[] = [];
     
     if (subOrgCode === 'ALL') {
       // Return data from all regions
@@ -84,7 +85,7 @@ export async function GET(request: NextRequest) {
 }
 
 function getOrgName(code: string): string {
-  const orgMap: { [key: string]: string } = {
+  const orgMap: Record<string, string> = {
     'PP0100': 'Đội quản lý điện Hải Châu',
     'PP0300': 'Đội quản lý điện Liên Chiểu',
     'PP0500': 'Đội quản lý điện Sơn Trà',
